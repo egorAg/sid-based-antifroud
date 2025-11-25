@@ -9,6 +9,8 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 
+import cookie from '@fastify/cookie';
+
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
       AppModule,
@@ -44,6 +46,10 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('/nest-docs', app, document);
+
+  await app.register(cookie, {
+    secret: 'super-secret-for-signing', // можем заменить на env позже
+  });
 
   await app.listen(3000, '0.0.0.0');
 }
