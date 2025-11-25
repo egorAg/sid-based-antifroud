@@ -1,22 +1,23 @@
-import { NestFactory } from '@nestjs/core';
-import {
-  FastifyAdapter,
-  NestFastifyApplication,
-} from '@nestjs/platform-fastify';
-import { AppModule } from './app.module';
+import {NestFactory} from '@nestjs/core';
+import {FastifyAdapter, NestFastifyApplication,} from '@nestjs/platform-fastify';
+import {AppModule} from './app.module';
 
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import {DocumentBuilder, SwaggerModule} from '@nestjs/swagger';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 
 import cookie from '@fastify/cookie';
 import {ValidationPipe} from "@nestjs/common";
+import {AppConfigService} from "./config/config.service";
+import {ConfigVariables} from "./config/env/env.keys";
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
       AppModule,
       new FastifyAdapter(),
   );
+
+  const appConfig = app.get(AppConfigService);
 
   await app.register(swagger, {
     swagger: {
@@ -48,9 +49,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('/docs', app, document);
 
-  await app.register(cookie, {
-    secret: 'super-secret-for-signing', // можем заменить на env позже
-  });
+  await app.register(cookie);
 
   app.useGlobalPipes(
       new ValidationPipe({
@@ -61,7 +60,7 @@ async function bootstrap() {
       }),
   );
 
-  await app.listen(3000, '0.0.0.0');
+  await app.listen(appConfig.get(ConfigVariables.PORT), '0.0.0.0');
 }
 
 void bootstrap();

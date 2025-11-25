@@ -9,7 +9,6 @@ export const envSchema = z.object({
         .default(3000),
     DATABASE_URL: z.url(),
     REDIS_URL: z.url(),
-    COOKIE_SECRET: z.string().min(16),
     JWT_SECRET: z.string().min(16),
 });
 

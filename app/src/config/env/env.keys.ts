@@ -3,6 +3,5 @@ export enum ConfigVariables {
     PORT = 'PORT',
     DATABASE_URL = 'DATABASE_URL',
     REDIS_URL = 'REDIS_URL',
-    COOKIE_SECRET = 'COOKIE_SECRET',
     JWT_SECRET = 'JWT_SECRET',
 }
