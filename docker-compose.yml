@@ -1,0 +1,48 @@
+version: '3.9'
+
+services:
+  app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: antifraud-app
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/antifraud
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - ./app:/app
+    command: >
+      sh -c "yarn install &&
+             yarn build &&
+             node dist/main.js"
+
+  postgres:
+    image: postgres:17
+    container_name: antifraud-postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: antifraud
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: antifraud-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+
+volumes:
+  pgdata:
+  redisdata:
