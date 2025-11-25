@@ -10,6 +10,7 @@ export const envSchema = z.object({
     DATABASE_URL: z.url(),
     REDIS_URL: z.url(),
     COOKIE_SECRET: z.string().min(16),
+    JWT_SECRET: z.string().min(16),
 });
 
 export type EnvVars = z.infer<typeof envSchema>;
@@ -18,7 +19,7 @@ export function validateEnv(config: Record<string, unknown>): EnvVars {
     const parsed = envSchema.safeParse(config);
 
     if (!parsed.success) {
-        console.error('❌ Invalid environment configuration:');
+        console.error('Invalid environment configuration:');
         console.error(parsed.error.format());
         throw new Error('Invalid environment variables');
     }

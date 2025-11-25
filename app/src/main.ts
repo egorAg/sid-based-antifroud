@@ -10,6 +10,7 @@ import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 
 import cookie from '@fastify/cookie';
+import {ValidationPipe} from "@nestjs/common";
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -30,7 +31,7 @@ async function bootstrap() {
   });
 
   await app.register(swaggerUi, {
-    routePrefix: '/docs',
+    routePrefix: '/fastify-docs',
     uiConfig: {
       docExpansion: 'list',
       deepLinking: true,
@@ -45,12 +46,22 @@ async function bootstrap() {
       .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('/nest-docs', app, document);
+  SwaggerModule.setup('/docs', app, document);
 
   await app.register(cookie, {
     secret: 'super-secret-for-signing', // можем заменить на env позже
   });
 
+  app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        transformOptions: { enableImplicitConversion: true },
+      }),
+  );
+
   await app.listen(3000, '0.0.0.0');
 }
-bootstrap();
+
+void bootstrap();
