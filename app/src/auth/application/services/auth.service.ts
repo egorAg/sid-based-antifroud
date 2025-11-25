@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { compare, hash } from 'bcryptjs';
 import {UserService} from "../../../user/application/user.service";
 import { JwtService } from '@nestjs/jwt';
+import {AuthTokenResponse} from "../../presentation/responses/auth-token.response";
 
 @Injectable()
 export class AuthService {
@@ -10,36 +11,48 @@ export class AuthService {
         private readonly jwt: JwtService,
     ) {}
 
-    async register(email: string, password: string) {
+    async register(email: string, password: string): Promise<AuthTokenResponse> {
         const existing = await this.users.findByEmail(email);
-        if (existing) throw new UnauthorizedException('User already exists');
+
+        if (existing) {
+            throw new UnauthorizedException('User already exists');
+        }
 
         const passwordHash = await hash(password, 10);
+
         const user = await this.users.createUser(email, passwordHash);
 
-        return this.generateToken(user.id, user.email);
+        return {
+            accessToken: await this.generateToken(user.id, user.email)
+        };
     }
 
-    async login(email: string, password: string) {
+    async login(email: string, password: string): Promise<AuthTokenResponse> {
         const user = await this.users.findByEmail(email);
-        if (!user) throw new UnauthorizedException('Invalid credentials');
+
+        if (!user) {
+            throw new UnauthorizedException('Invalid credentials');
+        }
 
         const ok = await compare(password, user.passwordHash);
-        if (!ok) throw new UnauthorizedException('Invalid credentials');
 
-        return this.generateToken(user.id, user.email);
+        if (!ok) {
+            throw new UnauthorizedException('Invalid credentials');
+        }
+
+        return {
+            accessToken: await this.generateToken(user.id, user.email)
+        };
     }
 
-    private generateToken(userId: number, email: string) {
+    private async generateToken(userId: number, email: string): Promise<string> {
         const payload = { sub: userId, email };
-        const accessToken = this.jwt.sign(payload);
-
-        return { accessToken };
+        return this.jwt.signAsync(payload);
     }
 
-    verifyToken(token: string) {
+    public async verifyToken(token: string) {
         try {
-            return this.jwt.verify(token);
+            return this.jwt.verifyAsync(token);
         } catch {
             throw new UnauthorizedException('Invalid token');
         }

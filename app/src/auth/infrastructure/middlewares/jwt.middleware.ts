@@ -8,7 +8,7 @@ export const REQUEST_USER_SYMBOL = Symbol.for('request_user');
 export class JwtMiddleware implements NestMiddleware {
     constructor(private readonly auth: AuthService) {}
 
-    use(req: FastifyRequest, _: FastifyReply, next: () => void) {
+    async use(req: FastifyRequest, _: FastifyReply, next: () => void): Promise<void> {
         const authHeader = req.headers['authorization'];
 
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -18,7 +18,7 @@ export class JwtMiddleware implements NestMiddleware {
         const token = authHeader.slice('Bearer '.length);
 
         try {
-            const payload = this.auth.verifyToken(token);
+            const payload = await this.auth.verifyToken(token);
 
             const user = {
                 id: payload.sub,

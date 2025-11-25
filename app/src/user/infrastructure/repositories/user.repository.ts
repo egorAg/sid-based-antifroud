@@ -14,9 +14,12 @@ export class UserRepository {
             .from(users)
             .where(eq(users.email, email));
 
-        if (result.length === 0) return null;
+        if (result.length === 0) {
+            return null;
+        }
 
         const u = result[0];
+
         return new UserEntity(
             u.id,
             u.email,

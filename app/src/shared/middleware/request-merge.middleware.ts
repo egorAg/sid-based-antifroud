@@ -1,6 +1,9 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { FastifyRequest, FastifyReply } from 'fastify';
 
+/**
+ * Честно своровано с просторов интернета, объединяет объекты запроса Nest и Fastify
+ */
 @Injectable()
 export class RequestMergeMiddleware implements NestMiddleware {
     use(req: FastifyRequest, _: FastifyReply, next: () => void) {

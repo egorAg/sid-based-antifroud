@@ -1,8 +1,9 @@
 import { createParamDecorator, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import {REQUEST_USER_SYMBOL} from "../middlewares/jwt.middleware";
+import {UserShortEntity} from "../../../user/domain/user-short.entity";
 
 export const CurrentUser = createParamDecorator(
-    (_, ctx: ExecutionContext) => {
+    (_, ctx: ExecutionContext): UserShortEntity => {
         const req = ctx.switchToHttp().getRequest();
 
         const user =
