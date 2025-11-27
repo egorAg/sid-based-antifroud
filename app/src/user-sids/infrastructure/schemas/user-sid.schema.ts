@@ -6,7 +6,7 @@ import {
   timestamp,
   unique,
 } from 'drizzle-orm/pg-core';
-import { users } from '../../../user/infrastructure/schemas/user.schema';
+import { userSchema } from '../../../user/infrastructure/schemas/user.schema';
 
 export const userSidsSchema = pgTable(
   'user_sids',
@@ -14,7 +14,7 @@ export const userSidsSchema = pgTable(
     id: serial('id').primaryKey(),
     userId: integer('user_id')
       .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
+      .references(() => userSchema.id, { onDelete: 'cascade' }),
     sid: varchar('sid', { length: 128 }).notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
