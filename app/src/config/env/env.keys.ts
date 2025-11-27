@@ -1,7 +1,8 @@
 export enum ConfigVariables {
-    NODE_ENV = 'NODE_ENV',
-    PORT = 'PORT',
-    DATABASE_URL = 'DATABASE_URL',
-    REDIS_URL = 'REDIS_URL',
-    JWT_SECRET = 'JWT_SECRET',
+  NODE_ENV = 'NODE_ENV',
+  PORT = 'PORT',
+  DATABASE_URL = 'DATABASE_URL',
+  REDIS_URL = 'REDIS_URL',
+  JWT_SECRET = 'JWT_SECRET',
+  SID_BIND_TTL = 'SID_BIND_TTL',
 }

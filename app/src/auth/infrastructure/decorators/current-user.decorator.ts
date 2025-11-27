@@ -1,22 +1,21 @@
-import { createParamDecorator, ExecutionContext, UnauthorizedException } from '@nestjs/common';
-import {REQUEST_USER_SYMBOL} from "../middlewares/jwt.middleware";
-import {UserShortEntity} from "../../../user/domain/user-short.entity";
+import {
+  createParamDecorator,
+  ExecutionContext,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { UserShortEntity } from '../../../user/domain/entities/user-short.entity';
+import { FastifyRequest } from 'fastify';
 
 export const CurrentUser = createParamDecorator(
-    (_, ctx: ExecutionContext): UserShortEntity => {
-        const req = ctx.switchToHttp().getRequest();
+  (_, ctx: ExecutionContext): UserShortEntity => {
+    const req: FastifyRequest = ctx.switchToHttp().getRequest();
 
-        const user =
-            req.user ??
-            req.raw?.user ??
-            req.requestPayloadStream?.user ??
-            req[REQUEST_USER_SYMBOL] ??
-            null;
+    const user = req.user ?? null;
 
-        if (!user) {
-            throw new UnauthorizedException();
-        }
+    if (!user) {
+      throw new UnauthorizedException();
+    }
 
-        return user;
-    },
+    return user;
+  },
 );

@@ -15,6 +15,13 @@
       "when": 1764081881180,
       "tag": "0001_dusty_spencer_smythe",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1764142655040,
+      "tag": "0002_aspiring_fat_cobra",
+      "breakpoints": true
     }
   ]
 }
