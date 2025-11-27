@@ -1,98 +1,254 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# SID-based Anti-Fraud Service
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+🚨 Лёгкая антифрод-система для выявления мультиаккаунтов и защиты от
+спама запросами --- построена на NestJS + Fastify + Drizzle ORM +
+Redis + PostgreSQL.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 📌 Оглавление
 
-## Description
+-   [Описание](#описание)
+-   [Задача, которую решает сервис](#задача-которую-решает-сервис)
+-   [Как работает антифрод](#как-работает-антифрод)
+-   [Архитектура и стек](#архитектура-и-стек)
+-   [Основные компоненты](#основные-компоненты)
+-   [Флоу запроса](#флоу-запроса)
+-   [Диаграмма последовательности](#диаграмма-последовательности)
+-   [ERD Диаграмма](#erd-диаграмма)
+-   [Роуты](#роуты)
+-   [Запуск проекта](#запуск-проекта)
+-   [Переменные окружения](#переменные-окружения)
+-   [Разработка и миграции (Drizzle)](#разработка-и-миграции-drizzle)
+-   [Заметки по безопасности](#заметки-по-безопасности)
+-   [Ограничения и будущее развитие](#ограничения-и-будущее-развитие)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+------------------------------------------------------------------------
 
-## Project setup
+# 🧠 Описание
 
-```bash
-$ yarn install
-```
+Сервис реализует лёгкий антифрод-уровень, основанный на **SID** ---
+идентификаторе браузера, хранящемся в cookie.
 
-## Compile and run the project
+Он помогает выявлять: - мультиаккаунтеров, - пользователей, которые
+заходят под разными учетками, - простейшие обходы безопасности, -
+скрипты, которые спамят запросами.
 
-```bash
-# development
-$ yarn run start
+------------------------------------------------------------------------
 
-# watch mode
-$ yarn run start:dev
+# 🎯 Задача, которую решает сервис
 
-# production mode
-$ yarn run start:prod
-```
+Раньше при каждом запросе создавался новый SID и записывался в БД.\
+Если пользователь запускал агрессивный скрипт --- БД раздувалась **до
+миллионов записей**.
 
-## Run tests
+Наш сервис решает проблему за счёт: - **Redis-lock'ов**, которые не дают
+спамить привязками, - уникального `(userId, sid)` сочетания, -
+throttling'a SID-привязок.
 
-```bash
-# unit tests
-$ yarn run test
+------------------------------------------------------------------------
 
-# e2e tests
-$ yarn run test:e2e
+# 🔥 Как работает антифрод
 
-# test coverage
-$ yarn run test:cov
-```
+### 1. Генерация SID
 
-## Deployment
+Если у пользователя в cookie нет `sid`, создаётся новый `nanoid(21)` и
+отправляется обратно.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### 2. Привязка SID к userId
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Если юзер авторизован: - проверяется Redis-lock, - если нет ---
+добавляется запись в `user_sids`.
 
-```bash
-$ yarn install -g @nestjs/mau
-$ mau deploy
-```
+### 3. Anti-Spam (главная фича)
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+На каждую пару `(userId, sid)` ставится Redis-lock:
 
-## Resources
+    TTL = 60 сек
 
-Check out a few resources that may come in handy when working with NestJS:
+За это время повторная попытка привязки --- игнорируется.
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+### 4. Аналитика мультиаккаунтов
 
-## Support
+Есть дебаг-ручки: - SID → список пользователей - User → список его
+SID'ов
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+------------------------------------------------------------------------
 
-## Stay in touch
+# 🏗 Архитектура и стек
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+### Технологии:
 
-## License
+-   **NestJS** (DI, модули, структура)
+-   **Fastify** (быстрые хуки и низкая задержка)
+-   **Drizzle ORM** (типобезопасность и миграции)
+-   **PostgreSQL**
+-   **Redis** (anti-spam locks)
+-   **Swagger**
+-   **JWT**
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+------------------------------------------------------------------------
+
+# 🧩 Основные компоненты
+
+### 🎯 Fastify хуки
+
+Порядок выполнения:
+
+    requestIdHook → sidHook → jwtHook → sidBindHook → Controller
+
+### 🎯 SID Binder
+
+-   ставит Redis-lock\
+-   проверяет уникальность `(userId, sid)`\
+-   вставляет запись
+
+### 🎯 Репозитории (Drizzle)
+
+-   типобезопасные запросы\
+-   минимальный boilerplate
+
+### 🎯 Debug API
+
+Для анализа потенцильных мультиаккаунтов:
+
+    GET /users/sids/me
+    GET /users/sids/by-sid/:sid
+
+------------------------------------------------------------------------
+
+# 🔄 Флоу запроса
+
+               ┌──────────────────┐
+               │ Incoming Request │
+               └─────────┬────────┘
+                         │
+                         ▼
+            ┌───────────────────────────┐
+            │ requestIdHook             │
+            │ генерирует requestId      │
+            └──────────┬────────────────┘
+                       │
+                       ▼
+            ┌───────────────────────────┐
+            │ sidHook                   │
+            │ читает/создаёт SID        │
+            └──────────┬────────────────┘
+                       │
+                       ▼
+            ┌───────────────────────────┐
+            │ jwtHook (если приватный)  │
+            └──────────┬────────────────┘
+                       │
+                       ▼
+            ┌───────────────────────────┐
+            │ sidBindHook               │
+            │ Redis-lock + запись в БД  │
+            └──────────┬────────────────┘
+                       │
+                       ▼
+            ┌───────────────────────────┐
+            │ Nest Controller           │
+            └───────────────────────────┘
+
+------------------------------------------------------------------------
+
+# 🗂 ERD диаграмма
+
+    ┌─────────────┐         ┌────────────────────┐
+    │   users     │ 1     * │     user_sids      │
+    ├─────────────┤         ├────────────────────┤
+    │ id (PK)     │◄───────►│ user_id (FK→users) │
+    │ email       │         │ sid                │
+    │ password    │         │ created_at         │
+    └─────────────┘         └────────────────────┘
+
+------------------------------------------------------------------------
+
+# 📡 Роуты
+
+### Аутентификация
+
+    POST /auth/register
+    POST /auth/login
+    GET  /auth/me        (требует JWT)
+
+### SID Debug
+
+    GET /users/sids/me            (требует JWT)
+    GET /users/sids/by-sid/:sid   (требует JWT)
+
+### Документация
+
+    /docs
+    /fastify-docs
+
+------------------------------------------------------------------------
+
+# 🚀 Запуск проекта
+
+## 1. С Docker
+
+    docker-compose up --build
+
+Откроется по адресу:
+
+    http://localhost:3000
+
+Swagger:
+
+    http://localhost:3000/docs
+
+------------------------------------------------------------------------
+
+# ⚙ Переменные окружения (примеры)
+
+`.env.local (для запуска вне докера) или .env(для запуска в докере)`:
+
+    NODE_ENV=development
+    PORT=3000
+    
+    DATABASE_URL=postgres://postgres:postgres@localhost:5432/antifraud
+    REDIS_URL=redis://localhost:6379
+    
+    JWT_SECRET=super-secret-local-change
+    SID_BIND_TTL=60
+
+------------------------------------------------------------------------
+
+# 🧱 Разработка и миграции (Drizzle)
+
+### Генерация миграций:
+
+    yarn drizzle:generate
+
+### Применение:
+
+    yarn drizzle:push
+
+### Studio:
+
+    yarn drizzle:studio
+
+------------------------------------------------------------------------
+
+# 🔐 Заметки по безопасности
+
+-   SID --- не fingerprint, но отлично ловит простых мультиаккаунтеров
+-   Используется `httpOnly` cookie
+-   SameSite=lax защитит от CSRF
+-   Redis-lock предотвращает перегрузку БД
+-   JWT проверяется только на приватных ручках
+-   Swagger и статика исключены из цепочки хуков
+
+------------------------------------------------------------------------
+
+# 📌 Ограничения и будущее развитие
+
+### Ограничения:
+
+-   SID можно удалить вручную
+-   Нет полноценного fingerprint browser/device
+-   Нет ML-аналитики мультиаккаунтов
+
+------------------------------------------------------------------------
+
+# 🎉 Readme сгенерирован с любовью и скормленным проектом через Gemini :) 
