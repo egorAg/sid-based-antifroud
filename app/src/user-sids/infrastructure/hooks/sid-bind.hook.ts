@@ -3,20 +3,20 @@ import { SidBinderService } from '../../application/services/sid-binder.service'
 
 export function createSidBindHook(binder: SidBinderService) {
   return async function sidBindHook(req: FastifyRequest, reply: FastifyReply) {
-    const { user, sid, requestId } = req;
+    const { user, sid, requestId, isNewSid } = req;
 
     if (!user || !sid) {
       return Promise.resolve();
     }
 
-    binder.bindSid(user.id, sid, requestId).catch((err: any) => {
+    binder.bindSid(user.id, sid, requestId, isNewSid).catch((err: unknown) => {
       if (err instanceof Error) {
         reply.request.log.error(
-          `[${requestId}] Failed to bind SID=${sid} for user=${user.id}: ${err.message}`,
+            `[${requestId}] Failed to bind SID=${sid} for user=${user.id}: ${err.message}`,
         );
       } else {
         reply.request.log.error(
-          `[${requestId}] Failed to bind SID=${sid} for user=${user.id}: Unknown error`,
+            `[${requestId}] Failed to bind SID=${sid} for user=${user.id}: Unknown error`,
         );
       }
     });
