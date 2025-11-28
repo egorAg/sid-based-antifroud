@@ -5,6 +5,7 @@ declare module 'fastify' {
   interface FastifyRequest {
     user?: UserShortEntity;
     sid?: string;
+    isNewSid?: boolean;
     requestId?: string;
   }
 }

@@ -21,19 +21,20 @@ export async function sidHook(req: FastifyRequest, reply: FastifyReply) {
         maxAge: 60 * 60 * 24 * 365,
       });
 
+      req.isNewSid = true;
       logger.debug(`[RequestId: ${requestId}] Generated new SID: ${sid}`);
+
     } else {
+      req.isNewSid = false;
       logger.debug(`[RequestId: ${requestId}] Existing SID: ${sid}`);
     }
 
     req.sid = sid;
     return Promise.resolve();
+
   } catch (err: unknown) {
     if (err instanceof Error) {
-      logger.error(
-        `[RequestId: ${requestId}] Error in sidHook: ${err.message}`,
-        err.stack,
-      );
+      logger.error(`[RequestId: ${requestId}] Error in sidHook: ${err.message}`, err.stack);
     } else {
       logger.error(`[RequestId: ${requestId}] Unknown error in sidHook`, err);
     }
